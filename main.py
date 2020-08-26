@@ -8,10 +8,17 @@ headers = {
 		'Accept-Language' : 'en-US,en;q=0.5',
 		'Accept-Encoding' : 'gzip, deflate'
 	}
-
-data ={'username':'41711081','password':'1234567'}
+LOGIN_URL = 'http://elearning.kazgasa.kz/login/index.php'
 s = requests.Session()
-req = s.post("http://elearning.kazgasa.kz/login/index.php", data = data,headers = headers)
+response = s.get(LOGIN_URL, headers=headers, verify=False)
+#logintokenparser
+soup = bs(response.content,'html.parser')
+logintoken = soup.find('input', {'name':'logintoken'})['value']
+headers['cookie'] = '; '.join([x.name + '=' + x.value for x in response.cookies])
+headers['content-type'] = 'application/x-www-form-urlencoded'
+data ={'username':'adminus','password':'1lhfgSv?aTvQ','logintoken':logintoken}
+req = s.post("http://elearning.kazgasa.kz/login/index.php", data = data,headers = headers, verify=False)
+
 
 
 
@@ -36,4 +43,3 @@ for i in range(len(my_json['children'])):
 for link in course_links:
     course = s.get(url = link,headers = headers)
     print ("Succesfully entered in ",link)
-
