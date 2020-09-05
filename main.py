@@ -1,7 +1,9 @@
 import requests 
 from bs4 import BeautifulSoup as bs
 import json
+import sqlite3
 
+TIMEOUT = 0.5
 HEADERS = {
 		'User-Agent' : 'Mozilla/5.0 (Windows NT 5.1; rv:20.0) Gecko/20100101 Firefox/20.0',
 		'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -11,14 +13,28 @@ HEADERS = {
 LOGIN_URL = 'http://elearning.kazgasa.kz/login/index.php'
 
 
+def connect_db():
+    """
+    Connect to local db
+    return: connection cursor
+    """
+    conn = sqlite3.connect('../Course_enterer/app.db')
+    c = conn.cursor()   
+    return c
+
+def get_users(cursor):
+    result = []
+    for row in cursor.execute('SELECT username,password FROM users'):
+        result.append(row)
+    return result
 
 def login(username,password):
     session = requests.Session()
-    response = session.get(LOGIN_URL, headers=HEADERS, verify=False)
+    response = session.get(LOGIN_URL, headers=HEADERS, verify=False,timeout=TIMEOUT)
     soup = bs(response.content,'lxml')
     logintoken = soup.find('input', {'name':'logintoken'})['value']
     data ={'username':username,'password':password,'logintoken':logintoken}
-    req = session.post("http://elearning.kazgasa.kz/login/index.php", data = data,headers = HEADERS, verify=False)
+    req = session.post("http://elearning.kazgasa.kz/login/index.php", data = data,timeout=TIMEOUT,headers = HEADERS, verify=False)
 
     return session, req.content
 
@@ -41,42 +57,18 @@ def get_courses_url(content):
     return result
 
 
-
-
-
-
-
-
-#logintokenparser
-#проверяет список на какие он курсы подписан и создает список, содержаший эти url
-# payload = {'elementid':'expandable_branch_0_mycourses',
-#             'id':'mycourses',
-#             'type':'0',
-#             'sesskey':'QThfgh',
-#             'instance':'4'
-#             }
-# get_nav_bar = s.post("http://elearning.kazgasa.kz/lib/ajax/getnavbranch.php",data=payload , headers = headers)
-
-
-# soup = bs(req.content,  features="html.parser")
-# my_json = json.loads(get_nav_bar.text)
-
-# course_links = []
-# for i in range(len(my_json['children'])):
-#     link = my_json['children'][i]['link']
-#     course_links.append(link)
-
-# for link in course_links:
-#     course = s.get(url = link,headers = headers)
-#     print ("Succesfully entered in ",link)
-
-
+def follow_links(session, links):
+    for link in links:
+        courses = session.get(url=link, headers=HEADERS, timeout=TIMEOUT)
+        
+        
 def main():
-    data = {'username': '41711251',
-            'password':'4#rBFVPKi7'}
-    session, content = login(username=data['username'],password=data['password'])
-    courses_url = get_courses_url(content)
-
+    cursor = connect_db()
+    users = get_users(cursor)
+    for user in users:
+        session, content = login(username=user[0],password=user[1])
+        courses_url = get_courses_url(content)
+        follow_links(session,courses_url)
 
 if __name__ == "__main__":
     main()
