@@ -40,7 +40,6 @@ def login(username,password):
 
     return session, req.content
 
-
 def get_courses_url(content):
     """
     params: 
@@ -58,7 +57,6 @@ def get_courses_url(content):
     result = courses_url[3:]
     return result
 
-
 def follow_links(session, links):
     for link in links:
         courses = session.get(url=link, headers=HEADERS, timeout=TIMEOUT)
@@ -70,23 +68,25 @@ def is_time():
     dec_hour = hour+minute/60
     return (dec_hour)
 
-
 def main():
     while True:
         try:
             hour = is_time()
-            if hour > 8.5 and hour < 13:
+            if hour > 8.5 and hour < 19:
                 cursor = connect_db()
                 users = get_users(cursor)
                 for user in users:
                     session, content = login(username=user[0],password=user[1])
                     courses_url = get_courses_url(content)
-                    follow_links(session,courses_url)
+                    follow_links(session, courses_url)
+                time.sleep(60)
+
             else:
                 time.sleep(20)
         except Exception as e:
             print (e)
             pass
+
 
 if __name__ == "__main__":
     main()
