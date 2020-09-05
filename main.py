@@ -72,7 +72,7 @@ def main():
     while True:
         try:
             hour = is_time()
-            if hour > 8.5 and hour < 19:
+            if hour > 8.5 and hour < 13:
                 cursor = connect_db()
                 users = get_users(cursor)
                 for user in users:
