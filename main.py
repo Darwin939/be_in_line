@@ -4,8 +4,9 @@ import json
 import sqlite3
 from datetime  import datetime
 import time
+from threading import Thread
 
-TIMEOUT = 0.5
+TIMEOUT = 60
 HEADERS = {
 		'User-Agent' : 'Mozilla/5.0 (Windows NT 5.1; rv:20.0) Gecko/20100101 Firefox/20.0',
 		'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -68,21 +69,31 @@ def is_time():
     dec_hour = hour+minute/60
     return (dec_hour)
 
+def make_all(username,password):
+    session, content = login(username=username,password=password)
+    courses_url = get_courses_url(content)
+    for thread in range(len(courses_url)):
+        t1 = Thread(target=follow_links,args = (session,courses_url))
+    # follow_links(session, courses_url)
+        t1.start()
+    t1.join()
+
 def main():
     while True:
         try:
             hour = is_time()
-            if hour > 8.5 and hour < 13:
+            if hour > 8.5 and hour < 14:
                 cursor = connect_db()
                 users = get_users(cursor)
                 for user in users:
-                    session, content = login(username=user[0],password=user[1])
-                    courses_url = get_courses_url(content)
-                    follow_links(session, courses_url)
-                time.sleep(60)
-
+                    username = user[0]
+                    password = user[1]
+                    th1 = Thread(target=make_all, args=(username, password))
+                    th1.start()
+                th1.join()
+            time.sleep(5)
             else:
-                time.sleep(20)
+                time.sleep(30)
         except Exception as e:
             print (e)
             pass
