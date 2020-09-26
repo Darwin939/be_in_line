@@ -42,12 +42,12 @@ def login(username,password):
     soup = bs(response.content,'lxml')
     logintoken = soup.find('input', {'name':'logintoken'})['value']
     data ={'username':username,'password':password,'logintoken':logintoken}
-    req = session.post("http://elearning.kazgasa.kz/login/index.php", data = data,timeout=TIMEOUT,headers = HEADERS, verify=False)
+    session.post("http://elearning.kazgasa.kz/login/index.php", data = data,timeout=TIMEOUT,headers = HEADERS, verify=False)
 
-    return session, req.content
+    return session
 
-def get_attendance_url(session):
-    r = session.get(ATTENDANCE_URL)
+def get_attendance_url(session,url):
+    r = session.get(url)
     soup = bs(r.content,"lxml")
     
     a = soup.find_all("td",class_ ='statuscol cell c2 lastcol')[0].find("a").get("href")  #a = soup.find_all("td",class_ ='statuscol cell c2 lastcol')[-1].find("a").get("href")                               IndexError: list index out of range  
@@ -67,7 +67,6 @@ def current_time_unix():
 def get_lessons(session):
     time = current_time_unix()
     url = ((CALENDAR_URL).format(str(time)))
-    # url = 'http://elearning.kazgasa.kz/calendar/view.php?view=day&time=1601229600' # TO-DO
     r = session.get(url)
     soup = bs(r.content, "lxml")
     all_event = soup.find('div',class_ = 'eventlist my-1').find_all('div',class_ = 'event m-t-1')
@@ -93,30 +92,33 @@ def is_time():
     return (dec_hour)
 
 
+def do(user):
+    
+    username = user[0]
+    password = user[1]
+    session = login(username,password)
+    lessons_url = get_lessons(session)
+    for lesson in lessons_url:
+        sesskey,sessid ,session,a = get_attendance_url(session,lesson)
+        status = get_status_from_btn(session,a)
+        attendant_post_data = {'sessid':sessid,
+                           'sesskey':sesskey,
+                           '_qf__mod_attendance_student_attendance_form':1,
+                           'mform_isexpanded_id_session':1,
+                           'status':status,
+                           'submitbutton':'%D0%A1%D0%BE%D1%85%D1%80%D0%B0%D0%BD%D0%B8%D1%82%D1%8C'}
+        session.post("http://elearning.kazgasa.kz/mod/attendance/attendance.php",data= attendant_post_data, headers= HEADERS)
+
 def main():
     while True:
         try:
             hour = is_time()
-            if hour > 8.5 and hour < 18:
+            if hour > 8.5 and hour < 14:
                 cursor = connect_db()
                 users = get_users(cursor)
                 for user in users:
                     try:
-                        
-                        username = user[0]
-                        password = user[1]
-                        local = current_time_unix()
-                        session, content = login(username,password)
-                        lessons_url = get_lessons(session)
-                        sesskey,sessid ,session,a = get_attendance_url(session)
-                        status = get_status_from_btn(session,a)
-                        attendant_post_data = {'sessid':sessid,
-                                            'sesskey':sesskey,
-                                            '_qf__mod_attendance_student_attendance_form':1,
-                                            'mform_isexpanded_id_session':1,
-                                            'status':status,
-                                        'submitbutton':'%D0%A1%D0%BE%D1%85%D1%80%D0%B0%D0%BD%D0%B8%D1%82%D1%8C'}
-                        a = session.post("http://elearning.kazgasa.kz/mod/attendance/attendance.php",data= attendant_post_data, headers= HEADERS)
+                        do(user)
                     except Exception as e:
                         print (e)
         except Exception as e:
