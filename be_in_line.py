@@ -50,8 +50,8 @@ def get_attendance_url(session,url):
     r = session.get(url)
     soup = bs(r.content,"lxml")
     
-    a = soup.find_all("td",class_ ='statuscol cell c2 lastcol')[0].find("a").get("href")  #a = soup.find_all("td",class_ ='statuscol cell c2 lastcol')[-1].find("a").get("href")                               IndexError: list index out of range  
-    
+    a = soup.find_all("td",class_ ='statuscol cell c2 lastcol')[-1].find("a").get("href")  #a = soup.find_all("td",class_ ='statuscol cell c2 lastcol')[-1].find("a").get("href")                               IndexError: list index out of range  
+
     splitten = a.split("=")
     sesskey = splitten[-1]
     sessid = splitten[1].split("&")[0]
@@ -67,15 +67,15 @@ def current_time_unix():
 def get_lessons(session):
     time = current_time_unix()
     url = ((CALENDAR_URL).format(str(time)))
+
     r = session.get(url)
     soup = bs(r.content, "lxml")
     all_event = soup.find('div',class_ = 'eventlist my-1').find_all('div',class_ = 'event m-t-1')
     lesson_attendance_urls = []
     for i in all_event:
-        if i.get('data-event-title') == 'Посещаемость':
-            lesson_url = i.find("div", class_='card-footer text-right bg-transparent')\
+        lesson_url = i.find("div", class_='card-footer text-right bg-transparent')\
                                                 .find('a').get('href')
-            lesson_attendance_urls.append(lesson_url)
+        lesson_attendance_urls.append(lesson_url)
     return lesson_attendance_urls
 
 def get_status_from_btn(session,url):
@@ -94,16 +94,13 @@ def is_time():
 
 def do(user):
     
-    username = "41711251" # user[0]
-    password = "4#rBFVPKi7"# user[1]
+    username = user[0]
+    password = user[1]
     session = login(username,password)
     lessons_url = get_lessons(session)
-    print (lessons_url)
     for lesson in lessons_url:
-        print (lesson)
         try:
             sesskey,sessid ,session,a = get_attendance_url(session,lesson)
-            print (a)
             status = get_status_from_btn(session,a)
             attendant_post_data = {'sessid':sessid,
                                   'sesskey':sesskey,
