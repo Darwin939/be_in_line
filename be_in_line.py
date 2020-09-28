@@ -94,20 +94,26 @@ def is_time():
 
 def do(user):
     
-    username = user[0]
-    password = user[1]
+    username = "41711251" # user[0]
+    password = "4#rBFVPKi7"# user[1]
     session = login(username,password)
     lessons_url = get_lessons(session)
+    print (lessons_url)
     for lesson in lessons_url:
-        sesskey,sessid ,session,a = get_attendance_url(session,lesson)
-        status = get_status_from_btn(session,a)
-        attendant_post_data = {'sessid':sessid,
-                           'sesskey':sesskey,
-                           '_qf__mod_attendance_student_attendance_form':1,
-                           'mform_isexpanded_id_session':1,
-                           'status':status,
-                           'submitbutton':'%D0%A1%D0%BE%D1%85%D1%80%D0%B0%D0%BD%D0%B8%D1%82%D1%8C'}
-        session.post("http://elearning.kazgasa.kz/mod/attendance/attendance.php",data= attendant_post_data, headers= HEADERS)
+        print (lesson)
+        try:
+            sesskey,sessid ,session,a = get_attendance_url(session,lesson)
+            print (a)
+            status = get_status_from_btn(session,a)
+            attendant_post_data = {'sessid':sessid,
+                                  'sesskey':sesskey,
+                                  '_qf__mod_attendance_student_attendance_form':1,
+                                  'mform_isexpanded_id_session':1,
+                                  'status':status,
+                                  'submitbutton':'%D0%A1%D0%BE%D1%85%D1%80%D0%B0%D0%BD%D0%B8%D1%82%D1%8C'}
+            session.post("http://elearning.kazgasa.kz/mod/attendance/attendance.php",data= attendant_post_data, headers= HEADERS)
+        except Exception as e:
+              print (e)
 
 def main():
     while True:
