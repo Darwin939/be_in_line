@@ -96,6 +96,7 @@ def do(user):
     
     username = user[0]
     password = user[1]
+    print (password)
     session = login(username,password)
     lessons_url = get_lessons(session)
     for lesson in lessons_url:
