@@ -5,6 +5,12 @@ from datetime import datetime
 import json
 import sqlite3
 import time
+from threading import Thread
+
+#TODO 1) documentation to the funcs
+#TODO 2) timezones or learn how to set time to unix
+#TODO 3) threading 
+#TODO 4) delete 
 
 TIMEOUT = 60
 HEADERS = {
@@ -31,43 +37,59 @@ def connect_db():
     return c
 
 def get_users(cursor):
+    """
+    Getting username and password from cursor db
+    return: tuple(username,password)
+    """
     result = []
     for row in cursor.execute('SELECT username,password FROM users'):
         result.append(row)
     return result
 
 def login(username,password):
+    """
+    Logining to the site
+    return: request.Session 
+    """
     session = requests.Session()
     response = session.get(LOGIN_URL, headers=HEADERS, verify=False,timeout=TIMEOUT)
     soup = bs(response.content,'lxml')
     logintoken = soup.find('input', {'name':'logintoken'})['value']
     data ={'username':username,'password':password,'logintoken':logintoken}
     session.post("http://elearning.kazgasa.kz/login/index.php", data = data,timeout=TIMEOUT,headers = HEADERS, verify=False)
-
     return session
 
 def get_attendance_url(session,url):
+    """
+    Get attendance_url and some keys to login that
+    return:
+    """
     r = session.get(url)
     soup = bs(r.content,"lxml")
-    
-    a = soup.find_all("td",class_ ='statuscol cell c2 lastcol')[-1].find("a").get("href")  #a = soup.find_all("td",class_ ='statuscol cell c2 lastcol')[-1].find("a").get("href")                               IndexError: list index out of range  
-
+    a = soup.find_all("td",class_ ='statuscol cell c2 lastcol')[-1].find("a").get("href")
     splitten = a.split("=")
     sesskey = splitten[-1]
     sessid = splitten[1].split("&")[0]
     session.get(a)
     return sesskey,sessid,session,a
 
-def current_time_unix():
+def current_time_unix()->int:
+    """
+    Get local time in unix
+    return: int
+    """
     utc = datetime.utcnow()
     unixtime = time.mktime(utc.timetuple())
     local = int(unixtime)+(3600*12)
     return local
 
-def get_lessons(session):
+def get_lessons(session)->list:
+    """
+    Getting url`s lesson attendance
+    return: list
+    """
     time = current_time_unix()
     url = ((CALENDAR_URL).format(str(time)))
-
     r = session.get(url)
     soup = bs(r.content, "lxml")
     all_event = soup.find('div',class_ = 'eventlist my-1').find_all('div',class_ = 'event m-t-1')
@@ -78,13 +100,21 @@ def get_lessons(session):
         lesson_attendance_urls.append(lesson_url)
     return lesson_attendance_urls
 
-def get_status_from_btn(session,url):
+def get_status_from_btn(session,url)->str:
+    """
+    Get button value
+    return: str 
+    """
     r = session.get(url)
     soup = bs(r.content,"lxml")
     status = soup.find_all("input",class_ = "form-check-input")[0].get("value")
     return status
 
-def is_time():
+def is_time()->float:
+    """
+    Getting decimal time 
+    return: float
+    """
     utcnow = datetime.utcnow()
     hour = utcnow.hour + 6
     minute = utcnow.minute
@@ -93,10 +123,11 @@ def is_time():
 
 
 def do(user):
-    
+    """
+    main func that assembly all func 
+    """
     username = user[0]
     password = user[1]
-    print (password)
     session = login(username,password)
     lessons_url = get_lessons(session)
     for lesson in lessons_url:
@@ -121,10 +152,9 @@ def main():
                 cursor = connect_db()
                 users = get_users(cursor)
                 for user in users:
-                    try:
-                        do(user)
-                    except Exception as e:
-                        print (e)
+                    th1 = Thread(target=do, args=(user))
+                    th1.start()
+                th1.join()
         except Exception as e:
             print(e)
 
