@@ -33,8 +33,8 @@ def connect_db():
     return: connection cursor
     """
     conn = sqlite3.connect('../Course_enterer/app.db')
-    c = conn.cursor()   
-    return c
+      
+    return conn
 
 def get_users(cursor):
     """
@@ -42,7 +42,9 @@ def get_users(cursor):
     return: tuple(username,password)
     """
     result = []
-    for row in cursor.execute('SELECT username,password FROM users'):
+    db = sqlite3.connect('../Course_enterer/app.db')
+    rows = db.cursor().execute('SELECT username,password FROM users;')
+    for row in rows:
         result.append(row)
     return result
 
@@ -121,6 +123,43 @@ def is_time()->float:
     dec_hour = hour+minute/60
     return (dec_hour)
 
+def lesson_async_iterator(lesson,session):
+    """
+    docstring
+    """
+    try:
+
+        sesskey,sessid ,session,a = get_attendance_url(session,lesson)
+        status = get_status_from_btn(session,a)
+        attendant_post_data = {'sessid':sessid,
+                                  'sesskey':sesskey,
+                                  '_qf__mod_attendance_student_attendance_form':1,
+                                  'mform_isexpanded_id_session':1,
+                                  'status':status,
+                                  'submitbutton':'%D0%A1%D0%BE%D1%85%D1%80%D0%B0%D0%BD%D0%B8%D1%82%D1%8C'}
+        session.post("http://elearning.kazgasa.kz/mod/attendance/attendance.php",data= attendant_post_data, headers= HEADERS)
+    except Exception as e:
+        print (e)
+
+def go_to_lesson(url, session):
+    print(url)
+    session.get(url)
+
+def is_valid(session):
+    r = session.get("http://elearning.kazgasa.kz/course/view.php?id=4161" , allow_redirects=False)
+    if r.status_code > 300:
+        return False
+    return True
+
+def delete_from_db(username):
+    """
+    docstring
+    """
+    command = 'DELETE FROM users WHERE username="{}";'.format(username)
+    
+    with connect_db().cursor() as curs:
+        rows = curs.execute(command)    
+    print (command)
 
 def do(user):
     """
@@ -128,33 +167,33 @@ def do(user):
     """
     username = user[0]
     password = user[1]
-    session = login(username,password)
+    session = login(username, password)
+    # if not is_valid(session):
+    #     delete_from_db(username)
     lessons_url = get_lessons(session)
+    
     for lesson in lessons_url:
-        try:
-            sesskey,sessid ,session,a = get_attendance_url(session,lesson)
-            status = get_status_from_btn(session,a)
-            attendant_post_data = {'sessid':sessid,
-                                  'sesskey':sesskey,
-                                  '_qf__mod_attendance_student_attendance_form':1,
-                                  'mform_isexpanded_id_session':1,
-                                  'status':status,
-                                  'submitbutton':'%D0%A1%D0%BE%D1%85%D1%80%D0%B0%D0%BD%D0%B8%D1%82%D1%8C'}
-            session.post("http://elearning.kazgasa.kz/mod/attendance/attendance.php",data= attendant_post_data, headers= HEADERS)
-        except Exception as e:
-              print (e)
+        th = Thread(target=lesson_async_iterator,args=(lesson,session))
+        th2 = Thread(target=go_to_lesson,args=(lesson,session))
+        th.start()
+        th2.start()
+    th.join()
+    th2.join()
+
+
+
+
 
 def main():
     while True:
         try:
             hour = is_time()
-            if hour > 8.5 and hour < 14:
+            if hour > 8.5 and hour < 14.5:
                 cursor = connect_db()
                 users = get_users(cursor)
                 for user in users:
-                    th1 = Thread(target=do, args=(user))
-                    th1.start()
-                th1.join()
+
+                    do(user)
         except Exception as e:
             print(e)
 
