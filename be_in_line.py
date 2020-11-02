@@ -12,7 +12,7 @@ from threading import Thread
 #TODO 3) threading 
 #TODO 4) delete 
 
-TIMEOUT = 60
+TIMEOUT = 30
 HEADERS = {
 		'User-Agent' : 'Mozilla/5.0 (Windows NT 5.1; rv:20.0) Gecko/20100101 Firefox/20.0',
 		'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -117,9 +117,9 @@ def is_time()->float:
     Getting decimal time 
     return: float
     """
-    utcnow = datetime.utcnow()
-    hour = utcnow.hour + 6
-    minute = utcnow.minute
+    now = datetime.now()
+    hour = now.hour
+    minute = now.minute
     dec_hour = hour+minute/60
     return (dec_hour)
 
@@ -142,7 +142,6 @@ def lesson_async_iterator(lesson,session):
         print (e)
 
 def go_to_lesson(url, session):
-    print(url)
     session.get(url)
 
 def is_valid(session):
@@ -153,13 +152,12 @@ def is_valid(session):
 
 def delete_from_db(username):
     """
-    docstring
+    Delete user , whose  login or password incorect
     """
-    command = 'DELETE FROM users WHERE username="{}";'.format(username)
-    
-    with connect_db().cursor() as curs:
-        rows = curs.execute(command)    
-    print (command)
+    command = "DELETE FROM users WHERE username='{}';".format(username)
+    connection = connect_db()
+    connection.cursor().execute(command)
+    connection.commit()
 
 def do(user):
     """
@@ -168,8 +166,8 @@ def do(user):
     username = user[0]
     password = user[1]
     session = login(username, password)
-    # if not is_valid(session):
-    #     delete_from_db(username)
+    if not is_valid(session):
+        delete_from_db(username)
     lessons_url = get_lessons(session)
     
     for lesson in lessons_url:
@@ -188,12 +186,11 @@ def main():
     while True:
         try:
             hour = is_time()
-            if hour > 8.5 and hour < 14.5:
+            if hour > 8.5 and hour < 15:
                 cursor = connect_db()
-                print (datetime.utcnow())
                 users = get_users(cursor)
                 for user in users:
-
+                    print ("Do it for user",user[0])
                     do(user)
         except Exception as e:
             print(e)
