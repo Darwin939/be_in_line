@@ -190,6 +190,7 @@ def main():
             hour = is_time()
             if hour > 8.5 and hour < 14.5:
                 cursor = connect_db()
+                print (datetime.utcnow())
                 users = get_users(cursor)
                 for user in users:
 
@@ -199,3 +200,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
